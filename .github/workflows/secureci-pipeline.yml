@@ -2,7 +2,7 @@ name: SecureCI Pipeline
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main ]
   pull_request:
     branches: [ main ]
 
@@ -10,7 +10,7 @@ permissions:
   security-events: write
 
 jobs:
-  security-scan:
+  build:
     runs-on: ubuntu-latest
     
     steps:
@@ -24,7 +24,12 @@ jobs:
       run: |
         docker build --no-cache -t secureci-app:${{ github.sha }} .
         docker tag secureci-app:${{ github.sha }} secureci-app:latest
+
+  scan-trivy:
+    needs: build
+    runs-on: ubuntu-latest
     
+    steps:
     - name: Scan with Trivy
       uses: aquasecurity/trivy-action@master
       with:
@@ -41,18 +46,29 @@ jobs:
       with:
         sarif_file: 'trivy-results.sarif'
 
+  scan-dockle:
+    needs: build
+    runs-on: ubuntu-latest
+    
+    steps:
     - name: Install Dockle
       run: |
         curl -L https://github.com/goodwithtech/dockle/releases/download/v0.4.15/dockle_0.4.15_Linux-64bit.tar.gz | tar xz -C /tmp
         sudo mv /tmp/dockle /usr/local/bin/
         dockle --version
+    
     - name: Run Dockle
       run: |
         chmod +x scripts/run-dockle.sh
         ./scripts/run-dockle.sh secureci-app:${{ github.sha }}
+
+  deploy:
+    needs: [scan-trivy, scan-dockle]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && success()
     
-    - name: Deploy (Manual)
-      if: github.ref == 'refs/heads/main' && success()
+    steps:
+    - name: Manual Deployment Instructions
       run: |
         echo "Все проверки пройдены!"
         echo "Готово к деплою. Используйте:"
