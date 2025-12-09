@@ -1,0 +1,50 @@
+name: SecureCI Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  security-scan:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+    
+    - name: Build Docker image
+      run: |
+        docker build -t secureci-app:${{ github.sha }} .
+        docker tag secureci-app:${{ github.sha }} secureci-app:latest
+    
+    - name: Scan with Trivy
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: 'secureci-app:${{ github.sha }}'
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+        severity: 'HIGH,CRITICAL'
+        exit-code: '1'
+    
+    - name: Upload Trivy results
+      uses: github/codeql-action/upload-sarif@v3
+      if: always()
+      with:
+        sarif_file: 'trivy-results.sarif'
+    
+    - name: Docker Bench Security Audit
+      run: |
+        chmod +x scripts/run-docker-bench.sh
+        ./scripts/run-docker-bench.sh
+    
+    - name: Deploy (Manual)
+      if: github.ref == 'refs/heads/main' && success()
+      run: |
+        echo "Все проверки пройдены!"
+        echo "Готово к деплою. Используйте:"
+        echo "docker run -p 5000:5000 secureci-app:latest"
