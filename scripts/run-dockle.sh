@@ -1,8 +1,8 @@
 #!/bin/bash
 
 echo "Запуск Dockle для аудита Docker-образа..."
-LOCAL_IMAGE="localhost/$1"
-dockle --ignore DKL-DI-0005 $LOCAL_IMAGE
+
+dockle --ignore DKL-DI-0005 "$1"
 
 if [ $? -eq 0 ]; then
     echo "Аудит успешно завершен. Образ соответствует best practices."
