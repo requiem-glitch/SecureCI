@@ -1,16 +1,5 @@
-name: SecureCI Pipeline
-
-on:
-  push:
-    branches: [ main, develop ]
-  pull_request:
-    branches: [ main ]
-
-permissions:
-  security-events: write
-
 jobs:
-  build:
+  security-scan:
     runs-on: ubuntu-latest
     
     steps:
@@ -23,19 +12,11 @@ jobs:
     - name: Build Docker image
       run: |
         docker build --no-cache -t secureci-app:${{ github.sha }} .
-        docker tag secureci-app:${{ github.sha }} secureci-app:latest
-
-    - name: Upload run-dockle.sh as artifact
-      uses: actions/upload-artifact@v3
-      with:
-        name: run-dockle-script
-        path: scripts/run-dockle.sh
-
-  scan-trivy:
-    needs: build
-    runs-on: ubuntu-latest
+        docker tag secureci-app:${{ github.sha }} secureci-app:local
     
-    steps:
+    - name: Check Docker images
+      run: docker images
+    
     - name: Scan with Trivy
       uses: aquasecurity/trivy-action@master
       with:
@@ -52,20 +33,6 @@ jobs:
       with:
         sarif_file: 'trivy-results.sarif'
 
-  scan-dockle:
-    needs: build
-    runs-on: ubuntu-latest
-    
-    steps:
-    - name: Download run-dockle.sh from artifact
-      uses: actions/download-artifact@v3
-      with:
-        name: run-dockle-script
-        path: scripts/
-    
-    - name: Make run-dockle.sh executable
-      run: chmod +x scripts/run-dockle.sh
-    
     - name: Install Dockle
       run: |
         curl -L https://github.com/goodwithtech/dockle/releases/download/v0.4.15/dockle_0.4.15_Linux-64bit.tar.gz | tar xz -C /tmp
@@ -74,15 +41,11 @@ jobs:
     
     - name: Run Dockle
       run: |
-        ./scripts/run-dockle.sh secureci-app:${{ github.sha }}
-
-  deploy:
-    needs: [scan-trivy, scan-dockle]
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && success()
+        chmod +x scripts/run-dockle.sh
+        ./scripts/run-dockle.sh secureci-app:local
     
-    steps:
-    - name: Manual Deployment Instructions
+    - name: Deploy (Manual)
+      if: github.ref == 'refs/heads/main' && success()
       run: |
         echo "Все проверки пройдены!"
         echo "Готово к деплою. Используйте:"
