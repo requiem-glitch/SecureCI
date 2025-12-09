@@ -19,7 +19,7 @@ jobs:
     
     - name: Build Docker image
       run: |
-        docker build -t secureci-app:${{ github.sha }} .
+        docker build --no-cache -t secureci-app:${{ github.sha }} .
         docker tag secureci-app:${{ github.sha }} secureci-app:latest
     
     - name: Scan with Trivy
@@ -37,10 +37,10 @@ jobs:
       with:
         sarif_file: 'trivy-results.sarif'
     
-    - name: Docker Bench Security Audit
+    - name: Run Dockle
       run: |
-        chmod +x scripts/run-docker-bench.sh
-        ./scripts/run-docker-bench.sh
+        chmod +x scripts/run-dockle.sh
+        ./scripts/run-dockle.sh secureci-app:local
     
     - name: Deploy (Manual)
       if: github.ref == 'refs/heads/main' && success()
