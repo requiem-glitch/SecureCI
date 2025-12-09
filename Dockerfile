@@ -1,6 +1,6 @@
 FROM python:3.11-slim
 
-LABEL maintainer="your-email@example.com"
+LABEL maintainer="vilsinegin@gmail.com"
 LABEL description="SecureCI - Secure Dockerized Python Application"
 
 WORKDIR /app
