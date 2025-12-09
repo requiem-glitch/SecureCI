@@ -1,3 +1,14 @@
+name: SecureCI Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+permissions:
+  security-events: write
+  
 jobs:
   security-scan:
     runs-on: ubuntu-latest
