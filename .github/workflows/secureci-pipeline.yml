@@ -23,29 +23,19 @@ jobs:
     - name: Build Docker image
       run: |
         docker build --no-cache -t secureci-app:${{ github.sha }} .
-        docker save secureci-app:${{ github.sha }} > secureci-app.tar
-    
-    - name: Cache Docker image
-      uses: actions/cache@v3
+        docker tag secureci-app:${{ github.sha }} secureci-app:latest
+
+    - name: Upload run-dockle.sh as artifact
+      uses: actions/upload-artifact@v3
       with:
-        path: secureci-app.tar
-        key: docker-image-${{ github.sha }}
+        name: run-dockle-script
+        path: scripts/run-dockle.sh
 
   scan-trivy:
     needs: build
     runs-on: ubuntu-latest
     
     steps:
-    - name: Restore Docker image
-      uses: actions/cache@v3
-      with:
-        path: secureci-app.tar
-        key: docker-image-${{ github.sha }}
-    
-    - name: Load Docker image
-      run: |
-        docker load < secureci-app.tar
-    
     - name: Scan with Trivy
       uses: aquasecurity/trivy-action@master
       with:
@@ -67,15 +57,14 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    - name: Restore Docker image
-      uses: actions/cache@v3
+    - name: Download run-dockle.sh from artifact
+      uses: actions/download-artifact@v3
       with:
-        path: secureci-app.tar
-        key: docker-image-${{ github.sha }}
+        name: run-dockle-script
+        path: scripts/
     
-    - name: Load Docker image
-      run: |
-        docker load < secureci-app.tar
+    - name: Make run-dockle.sh executable
+      run: chmod +x scripts/run-dockle.sh
     
     - name: Install Dockle
       run: |
@@ -85,7 +74,6 @@ jobs:
     
     - name: Run Dockle
       run: |
-        chmod +x scripts/run-dockle.sh
         ./scripts/run-dockle.sh secureci-app:${{ github.sha }}
 
   deploy:
