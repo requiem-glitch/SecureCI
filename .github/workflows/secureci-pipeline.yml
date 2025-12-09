@@ -49,7 +49,7 @@ jobs:
     - name: Run Dockle
       run: |
         chmod +x scripts/run-dockle.sh
-        ./scripts/run-dockle.sh secureci-app:local
+        ./scripts/run-dockle.sh secureci-app:${{ github.sha }}
     
     - name: Deploy (Manual)
       if: github.ref == 'refs/heads/main' && success()
